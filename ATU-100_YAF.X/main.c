@@ -28,6 +28,7 @@
 
 
 #include "defines.h"
+#include "eeprom_init.h"
 
 global_t global;
 
@@ -122,7 +123,7 @@ void MAIN_Init(void)
   global.cap_sw =0;
 
 
-  global.tune_stop_swr = 100; // SWR 1.10
+  global.tune_stop_swr = 100; // SWR 1.00
   
 
   //Global Enable of Weak PullUp
@@ -165,6 +166,7 @@ void main(void)
   
   //uint8_t c;
   
+  EEPROM_InitDefault();
   MAIN_Init();
   EEPROM_Init();
   BUTTON_Init();

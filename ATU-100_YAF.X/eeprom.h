@@ -14,13 +14,13 @@ extern "C"
 #endif
 
   
-__eeprom  int16_t ee_tune_stop_swr = 120;
-__eeprom  int16_t ee_tune_auto_swr = 140;
+__eeprom  int16_t ee_tune_stop_swr = 115;
+__eeprom  int16_t ee_tune_auto_swr = 190;
 __eeprom  uint8_t ee_tune_auto_enable = 0;
 __eeprom  uint8_t ee_sleep_enable =0;
 __eeprom  int16_t ee_sleep_delay_sec = 30;
-__eeprom  int16_t ee_cal_point_0 = 10; //1W
-__eeprom  int16_t ee_cal_point_1 = 30; //3W
+__eeprom  int16_t ee_cal_point_0 = 50; //5W
+__eeprom  int16_t ee_cal_point_1 = 750; //75W
 __eeprom  int16_t ee_cal_offset =150;
 __eeprom  int16_t ee_cal_gain = 12000;
 __eeprom  tunemem_t ee_tunemem[TUNEMEM_ITEMS] ={

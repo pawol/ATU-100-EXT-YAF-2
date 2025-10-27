@@ -1,27 +1,26 @@
 #include "defines.h"
+#include "eeprom_init.h"
 
-#define MENU_MEMORY_TIMEOUT   500 // x 10ms
-
-#define MENU_SUB_TIMEOUT   500 // x 10ms
-
+#define MENU_MEMORY_TIMEOUT   1000 // x 10ms
+#define MENU_SUB_TIMEOUT   1000 // x 10ms
 #define UPDATE_PERIODE       10 // x 10ms
 #define TUNE_UPDATE_PERIODE       50 // x 10ms
 
-#define CAL_STEP0_MAX   100  //  x 0.1W = 10W
+#define CAL_STEP0_MAX   200  //  x 0.1W = 10W
 #define CAL_STEP1_MAX   1000 //  x 0.1W = 100W
 
 #define ADC_CAL_START   100 //mV
 #define ADC_CAL_STOP      5 //mV
 
 #define TUNE_AUTO_MIN_SWR   120 
-#define TUNE_AUTO_MAX_SWR   200
+#define TUNE_AUTO_MAX_SWR   300 //180
 
 #define TUNE_STOP_MIN_SWR   100 
-#define TUNE_STOP_MAX_SWR   150
+#define TUNE_STOP_MAX_SWR   200 //200
 
-#define SLEEP_DELAY_MAX       300
+#define SLEEP_DELAY_MAX       900
 #define SLEEP_DELAY_STEP_SLOW   5
-#define SLEEP_DELAY_STEP_FAST  15
+#define SLEEP_DELAY_STEP_FAST  10
 #define SLEEP_DELAY_FAST_HIGHER  100
 
 typedef struct
@@ -35,10 +34,8 @@ typedef struct
 //variables
 const menu_t* current_menu;
 
-
 static union
 {
-
   struct
   {
     uint8_t cursor;
@@ -79,7 +76,6 @@ static union
     const menu_t **ptrMenu;
   } sub;
   
-  
   struct
   {
     uint8_t update_cnt;
@@ -99,6 +95,7 @@ static union
   struct
   {
     uint8_t step;
+    uint16_t timeout;
   } about;
   
   struct
@@ -125,15 +122,9 @@ static union
     uint8_t str_terminate; //must stay direkt behind memory
   }startupsave;    
   
-  
 } MENU_var;
 
-
 static uint8_t MENU_cursor;
-
-
-
-
 
 //Prototypes
 
@@ -146,12 +137,8 @@ static void MENU_SubTop_Init(void);
 static void MENU_Sub_Run(void);
 static void MENU_Sub_Update(void);
 
-
 static void MENU_Reset_Init(void);
 static void MENU_Bypass_Init(void);
-
-static void MENU_TParam_Init(void);
-static void MENU_TParam_Run(void);
 
 static void MENU_TParam_Init(void);
 static void MENU_TParam_Run(void);
@@ -171,7 +158,6 @@ static void MENU_Tune_Run(void);
 static void MENU_MemorySave_Init(void);
 static void MENU_MemoryLoad_Init(void);
 static void MENU_Memory_Run(void);
-
 
 static void MENU_About_Init(void);
 static void MENU_About_Run(void);
@@ -194,14 +180,11 @@ const menu_t menuLoad    ={str_MENU_Load, MENU_MemoryLoad_Init, MENU_Memory_Run}
 
 const menu_t menuAbout    ={str_MENU_About, MENU_About_Init, MENU_About_Run};
 
-
-
 const menu_t menuTParam   ={str_MENU_TunePar, MENU_TParam_Init, MENU_TParam_Run};
 
 const menu_t menuSleep    ={str_MENU_Sleep, MENU_Sleep_Init, MENU_Sleep_Run};
 const menu_t menuRelTest  ={str_MENU_RelTest, MENU_RelTest_Init, MENU_RelTest_Run};
 const menu_t menuCal      ={str_MENU_Cal, MENU_CalPWR_Init, MENU_CalPWR_Run};
-
 
 #define MENU_SUBTOP_ITEMS    6
 const menu_t* ptrSubTopMenu[MENU_SUBTOP_ITEMS] = { &menuBypass, &menuLoad, &menuSave, &menuReset, &menuSubSetup, &menuAbout};
@@ -233,7 +216,6 @@ static void MENU_Main_Update(void)
     l_row = 2;
   }
 
-
   if (global.bypass_enable == TRUE)
   {
     DISP_Str(0, 3, str_Bypass, 1);
@@ -258,18 +240,6 @@ static void MENU_Main_Update(void)
      DISP_Char(9, i, p_str[i], 0);
     }
   }
-  
-  
-  
- 
-
-//  UTILI_Int2Str(global.adc_f_mV, str, sizeof (str));
-//  DISP_Str(5, 2, str, 0);
-//
-//  UTILI_Int2Str(global.adc_r_mV, str, sizeof (str));
-//  DISP_Str(5, 3, str, 0);
-
-
 }
 
 static void MENU_Main_Init(void)
@@ -283,6 +253,8 @@ static void MENU_Main_Init(void)
   MENU_var.main.counter_1sec =0;
   MENU_var.main.sleep_timer =0;
   MENU_var.main.relais_backup = UTILI_Get_LC_Relays();
+  global.PWR = 0;   // Wyzeruj moc po wybudzeniu
+  global.SWR = 0;   // Wyzeruj SWR po wybudzeniu
 }
 
 static void MENU_Main_Weakup(void)
@@ -290,129 +262,120 @@ static void MENU_Main_Weakup(void)
    UTILI_Set_LC_Relays(MENU_var.main.relais_backup);
    MENU_Main_Init(); //Restore display
 }
-
 static void MENU_Main_Run(void)
 {
    UTILI_CalPWR();
    UTILI_CalSWR();
-  
-  //-----------------------------------------
-  //global.sleep_delay_sec = 100;
-  //-----------------------------------------
-  
-  if ((global.PWR >= SLEEP_WAKEUP_PWR ) && (global.sleep_enable == TRUE))
-  {
-    if (MENU_var.main.sleep_timer == global.sleep_delay_sec)
-    {
-      //sleeping weakup by power
-      MENU_Main_Weakup();
-    }
 
-    MENU_var.main.sleep_timer=0; //Reset sleeptimer if PWR >0
-  }
-  
-  if ((global.sleep_enable == TRUE) && (global.bypass_enable != TRUE))
-  {
-    if (MENU_var.main.sleep_timer < global.sleep_delay_sec)
-    {
-      MENU_var.main.counter_1sec++;
-      if (MENU_var.main.counter_1sec == 100)
+   if ((global.PWR >= SLEEP_WAKEUP_PWR ) && (global.sleep_enable == TRUE))
+   {
+      if (MENU_var.main.sleep_timer == global.sleep_delay_sec)
       {
-        MENU_var.main.counter_1sec=0;
-        MENU_var.main.sleep_timer++;
-        if (MENU_var.main.sleep_timer == global.sleep_delay_sec)
-        {
-          //Sleeping
-          DISP_Clr();
-          DISP_Str(DISP_COL_CENTER, 1, str_sleeping, 0);
-          UTILI_Set_LC_Relays(0); //Reset all relays
-        }
+         MENU_Main_Weakup();
       }
-    }
-  }
-  
+      MENU_var.main.sleep_timer=0;
+   }
 
-  if ((MENU_var.main.sleep_timer < global.sleep_delay_sec) || (global.sleep_enable != TRUE)) 
-  {
-    MENU_var.main.update_cnt++;
-    if (MENU_var.main.update_cnt == UPDATE_PERIODE)
-    {
-      MENU_var.main.update_cnt = 0;
-      if ((global.PWR > 0) || (MENU_var.main.old_pwr != 0)) //avoid display refresh when receiving
+   // if ((global.sleep_enable == TRUE) && (global.bypass_enable != TRUE)) // sleeping nie dzia?a w trybie bypass
+   if (global.sleep_enable == TRUE) // sleeping dzia?a teraz w bypass
+   {
+      if (MENU_var.main.sleep_timer < global.sleep_delay_sec)
       {
-        MENU_var.main.old_pwr =  global.PWR;
-        MENU_Main_Update();
+         MENU_var.main.counter_1sec++;
+         if (MENU_var.main.counter_1sec == 100)
+         {
+            MENU_var.main.counter_1sec=0;
+            MENU_var.main.sleep_timer++;
+            if (MENU_var.main.sleep_timer == global.sleep_delay_sec)
+            {
+               MENU_var.main.relais_backup = UTILI_Get_LC_Relays();
+               DISP_Clr();
+               DISP_Str(DISP_COL_CENTER, 1, str_sleeping, 0);
+               UTILI_Set_LC_Relays(0);
+            }
+         }
       }
-    }
+   }
 
-    //Auto Tune
-    if((global.tune_auto_enable == TRUE) && (global.bypass_enable != TRUE))
-    {
-      if((global.PWR > 0) && (global.SWR >= global.tune_auto_swr))
+   if ((MENU_var.main.sleep_timer < global.sleep_delay_sec) || (global.sleep_enable != TRUE))
+   {
+      MENU_var.main.update_cnt++;
+      if (MENU_var.main.update_cnt == UPDATE_PERIODE)
       {
-        current_menu = &menuTune;
-        current_menu->Init();
+         MENU_var.main.update_cnt = 0;
+         if ((global.PWR > 0) || (MENU_var.main.old_pwr != 0))
+         {
+            MENU_var.main.old_pwr =  global.PWR;
+            MENU_Main_Update();
+         }
       }
-    }
-    
-    
-    //short press -> 
-    if (BUTTON_count == BUTTON_RELEASED)
-    {
-      if(global.bypass_enable == TRUE) //-> bypass reset
+
+      //Auto Tune
+      if((global.tune_auto_enable == TRUE) && (global.bypass_enable != TRUE))
       {
-        global.bypass_enable = FALSE;
-        UTILI_Set_LC_Relays(global.bypass_save_relais);
+         if((global.PWR > 0) && (global.SWR >= global.tune_auto_swr))
+         {
+            current_menu = &menuTune;
+            current_menu->Init();
+         }
       }
-      else // -> Tuning
-      {  
-        current_menu = &menuTune; 
-      }
-      current_menu->Init();
-    }
 
-    //long pressed -> 
-    if (BUTTON_count == BUTTON_LONG_PRESSED)
-    {
-      if(global.bypass_enable == TRUE) //-> bypass reset
+      //short press -> tuning ZAWSZE, nawet bez RF
+      if (BUTTON_count == BUTTON_RELEASED)
       {
-        global.bypass_enable = FALSE;
-        UTILI_Set_LC_Relays(global.bypass_save_relais);
+         if(global.bypass_enable == TRUE)
+         {
+            global.bypass_enable = FALSE;
+            UTILI_Set_LC_Relays(global.bypass_save_relais);
+         }
+         else
+         {
+            current_menu = &menuTune;
+            current_menu->Init();
+         }
       }
-      else //-> sub menu
+
+      //long pressed -> menu
+      if (BUTTON_count == BUTTON_LONG_PRESSED)
       {
-        current_menu = &menuSubTop;
-      }  
-      current_menu->Init();
-    }
-  }
-  else
-  {
-     //sleeping weakup by button
-    if (BUTTON_count == BUTTON_SHORT_PRESSED)
-    {
-      MENU_Main_Weakup();
-    }
-  }
-
-
-
+         if(global.bypass_enable == TRUE)
+         {
+            global.bypass_enable = FALSE;
+            UTILI_Set_LC_Relays(global.bypass_save_relais);
+         }
+         else
+         {
+            current_menu = &menuSubTop;
+         }
+         current_menu->Init();
+      }
+   }
+   else
+   {
+      if (BUTTON_count == BUTTON_SHORT_PRESSED)
+      {
+         MENU_Main_Weakup();
+      }
+   }
 }
 
-//-- Menu_Reset  --------------------------------------------------------------------------------------------------
+//-- MENU_Reset --------------------------------------------------------------------------------------------------
 static void MENU_Reset_Init(void)
 {
-  UTILI_Set_LC_Relays(0);
-  global.bypass_enable = FALSE;  
-  MENU_Init();
+    // 1. Nadpisz magic byte z?? warto?ci?
+    eeprom_write(MAGIC_BYTE1_ADDR, 0x00);
+    // 2. Wy?wietl komunikat
+    DISP_Clr();
+    DISP_Str(DISP_COL_CENTER, 1, "Restarting", 1);
+    while(1); // WDT wywo?a reset
 }
 
 //-- Menu Bypass --------------------------------------------------------------------------------------------------
 static void MENU_Bypass_Init(void)
 {
   global.bypass_enable = TRUE;
-  global.bypass_save_relais = UTILI_Get_LC_Relays(); //Save current relais
-  UTILI_Set_LC_Relays(0); //reset relais
+  global.bypass_save_relais = UTILI_Get_LC_Relays(); //Save current relays state
+  UTILI_Set_LC_Relays(0); //reset relays
   MENU_Init();
 }
 
@@ -447,11 +410,8 @@ static void MENU_Tune_Init(void)
 
 static void MENU_Tune_Run(void)
 {
-
-  //Tune 
   TUNE_Run();
 
-  //Display update
   MENU_var.tune.update_cnt++;
   if (MENU_var.tune.update_cnt == TUNE_UPDATE_PERIODE)
   {
@@ -471,9 +431,7 @@ static void MENU_Tune_Run(void)
     MENU_Init();
     return;
   }
-  
 }
-
 //-- Menu_TParam  --------------------------------------------------------------------------------------------------
 static void MENU_TParam_Update(void)
 {
@@ -491,7 +449,6 @@ static void MENU_TParam_Update(void)
   DISP_SWR(6, 2, MENU_var.tparam.stop_swr, (cursor == 2));
   DISP_Str(0,3,str_Save, (cursor == 3));
   DISP_Str(7,3,str_Esc, (cursor == 4));
-
 }
 
 static void MENU_TParam_Init(void)
@@ -500,7 +457,8 @@ static void MENU_TParam_Init(void)
   BUTTON_Reset();
   DISP_Str(0, 0,str_Auto, 0);
   DISP_Str(0, 1,str_Start,0);
-  DISP_Str(0, 2,str_Stop,0);
+  DISP_Str(0, 2,str_Stop,0); // "Targ." zawsze normalnie (nie negatyw)
+  //DISP_Str(0, 2,str_Stop,1); // "Targ." zawsze w negatywie
   MENU_var.tparam.cursor=0;
   MENU_var.tparam.auto_enable = global.tune_auto_enable;
   MENU_var.tparam.auto_swr = global.tune_auto_swr;
@@ -510,7 +468,6 @@ static void MENU_TParam_Init(void)
 
 static void MENU_TParam_Run(void)
 {
-  
   if (BUTTON_count == BUTTON_RELEASED)
   {
     MENU_var.tparam.cursor++;
@@ -540,7 +497,6 @@ static void MENU_TParam_Run(void)
       MENU_TParam_Update();
     }    
     
-    
     //cursor at "Start"
     if(MENU_var.tparam.cursor == 1)
     {
@@ -563,28 +519,35 @@ static void MENU_TParam_Run(void)
       MENU_TParam_Update();
     }
     
-    if (MENU_var.tparam.cursor == 3) //cursor at "Save"
-    {
-      global.tune_auto_enable = MENU_var.tparam.auto_enable;
-      global.tune_auto_swr = MENU_var.tparam.auto_swr;
-      global.tune_stop_swr = MENU_var.tparam.stop_swr;
-      
-      EEPROM_Write((uint8_t)&ee_tune_stop_swr, &global.tune_stop_swr, sizeof(ee_tune_stop_swr));
-      EEPROM_Write((uint8_t)&ee_tune_auto_swr, &global.tune_auto_swr, sizeof(ee_tune_auto_swr));
-      EEPROM_Write((uint8_t)&ee_tune_auto_enable, &global.tune_auto_enable, sizeof(ee_tune_auto_enable));
-      MENU_Init();
-      return;
-    } 
+if (MENU_var.tparam.cursor == 3) //cursor at "Save"
+{
+  // Blokada: tune_stop_swr nie mo?e by? >= tune_auto_swr
+  if (MENU_var.tparam.stop_swr >= MENU_var.tparam.auto_swr)
+  {
+    // Automatycznie ustaw stop_swr na auto_swr - 5 (czyli -0.05 SWR)
+    MENU_var.tparam.stop_swr = MENU_var.tparam.auto_swr - 5;
+    MENU_TParam_Update();
+    return; // U?ytkownik musi ponownie zatwierdzi? zapis
+  }
+
+  global.tune_auto_enable = MENU_var.tparam.auto_enable;
+  global.tune_auto_swr = MENU_var.tparam.auto_swr;
+  global.tune_stop_swr = MENU_var.tparam.stop_swr;
+  
+  EEPROM_Write((uint8_t)&ee_tune_stop_swr, &global.tune_stop_swr, sizeof(ee_tune_stop_swr));
+  EEPROM_Write((uint8_t)&ee_tune_auto_swr, &global.tune_auto_swr, sizeof(ee_tune_auto_swr));
+  EEPROM_Write((uint8_t)&ee_tune_auto_enable, &global.tune_auto_enable, sizeof(ee_tune_auto_enable));
+  MENU_Init();
+  return;
+} 
 
     if (MENU_var.tparam.cursor == 4) //cursor at "ESC"
     {
       MENU_Init();
       return;
     } 
-    
   }
 }
-
 
 //-- Menu_Sleep  --------------------------------------------------------------------------------------------------
 static void MENU_Sleep_Update(void)
@@ -604,7 +567,6 @@ static void MENU_Sleep_Update(void)
   DISP_Str(7,1,str,(cursor == 1));
   DISP_Str(0,3,str_Save,(cursor == 2));
   DISP_Str(7,3,str_Esc, (cursor == 3));
-  
 }
 
 static void MENU_Sleep_Init(void)
@@ -621,7 +583,6 @@ static void MENU_Sleep_Init(void)
 
 static void MENU_Sleep_Run(void)
 {
-  
   if (BUTTON_count == BUTTON_RELEASED)
   {
     MENU_var.sleep.cursor++;
@@ -650,11 +611,9 @@ static void MENU_Sleep_Run(void)
       MENU_Sleep_Update();
     }    
     
-    
     //cursor at "Delay"
     if(MENU_var.sleep.cursor == 1)
     {
-      
       if(MENU_var.sleep.delay_sec >= SLEEP_DELAY_FAST_HIGHER)
       {
         MENU_var.sleep.delay_sec += SLEEP_DELAY_STEP_FAST;
@@ -672,8 +631,7 @@ static void MENU_Sleep_Run(void)
       MENU_Sleep_Update();
     }
 
-    
-    if (MENU_var.tparam.cursor == 2) //cursor at "Save"
+    if (MENU_var.sleep.cursor == 2) //cursor at "Save"
     {
       global.sleep_delay_sec = MENU_var.sleep.delay_sec;
       global.sleep_enable = MENU_var.sleep.enable;
@@ -683,18 +641,13 @@ static void MENU_Sleep_Run(void)
       return;
     }
     
-    if (MENU_var.tparam.cursor == 3) //cursor at "Esc"
+    if (MENU_var.sleep.cursor == 3) //cursor at "Esc"
     {
       MENU_Init();
       return;
     }
-    
-    
   }
 }
-
-
-
 //-- Menu_RelTest  --------------------------------------------------------------------------------------------------
 
 static void MENU_RelTest_Update(void)
@@ -704,16 +657,11 @@ static void MENU_RelTest_Update(void)
   uint8_t l_row = 2;
   char str[7];
 
-
-
-  //switch off : Input -> C -> L -> Output
-  //switch on  : Input -> L -> C -> Output
   if (global.cap_sw)
   {
     c_row = 2;
     l_row = 1;
   }
-
 
   DISP_Str(0, c_row, str_C_, 0);
   UTILI_GetCapValueStr(str, sizeof (str));
@@ -750,7 +698,6 @@ static void MENU_RelTest_Init(void)
 
 static void MENU_RelTest_Run(void)
 {
-
   MENU_var.reltest.update_cnt++;
   if (MENU_var.reltest.update_cnt == UPDATE_PERIODE)
   {
@@ -772,7 +719,6 @@ static void MENU_RelTest_Run(void)
     MENU_RelTest_Update();
   }
 
-
   if (BUTTON_count == BUTTON_LONG_PRESSED)
   {
     BUTTON_count -= BUTTON_LONG_REPEAT_DELAY_MAX;
@@ -789,7 +735,6 @@ static void MENU_RelTest_Run(void)
         global.cap_relays = (uint8_t) (global.cap_relays << 1) & 0x7f;
       }
     }
-
 
     //cursor at "ind"
     if ((!global.cap_sw && (MENU_var.reltest.cursor == 1))
@@ -813,9 +758,7 @@ static void MENU_RelTest_Run(void)
       {
         global.cap_sw = 0;
       }
-      
       BUTTON_count = BUTTON_RESET;
-    
     }
 
     if (MENU_var.reltest.cursor == 3) //cursor at "Esc"
@@ -829,61 +772,50 @@ static void MENU_RelTest_Run(void)
     {
       MENU_RelTest_Update();
     }
-  
     UTILI_SetRelays();
   }
-  
-  
-    //- Buttons Auto and Bypass for fine tuning
-    
-   uint8_t update =0;  
-  
-    //cursor at "cap"
-    if ((!global.cap_sw && (MENU_var.reltest.cursor == 0))
-        || (global.cap_sw && (MENU_var.reltest.cursor == 1)))
+
+  //- Buttons Auto and Bypass for fine tuning
+  uint8_t update =0;  
+
+  //cursor at "cap"
+  if ((!global.cap_sw && (MENU_var.reltest.cursor == 0))
+      || (global.cap_sw && (MENU_var.reltest.cursor == 1)))
+  {
+    if(BUTTON_Bypass_count == 1)
     {
-      if(BUTTON_Bypass_count == 1)
-      {
-        if(global.cap_relays > 0) global.cap_relays--;
-        update=1;
-      }
-      
-      if(BUTTON_Auto_count == 1)
-      {
-        if(global.cap_relays < 0x7f) global.cap_relays++;
-        update=1;
-      }
+      if(global.cap_relays > 0) global.cap_relays--;
+      update=1;
     }
-    
-    
-    //cursor at "ind"
-    if ((!global.cap_sw && (MENU_var.reltest.cursor == 1))
-        || (global.cap_sw && (MENU_var.reltest.cursor == 0)))
+    if(BUTTON_Auto_count == 1)
     {
-      if(BUTTON_Bypass_count == 1)
-      {
-        if(global.ind_relays > 0) global.ind_relays--;
-        update=1;
-      }
-      
-      if(BUTTON_Auto_count == 1)
-      {
-        if(global.ind_relays < 0x7f) global.ind_relays++;
-        update=1;
-      }
+      if(global.cap_relays < 0x7f) global.cap_relays++;
+      update=1;
     }
-  
-   
-   if(update)
-   {
+  }
+
+  //cursor at "ind"
+  if ((!global.cap_sw && (MENU_var.reltest.cursor == 1))
+      || (global.cap_sw && (MENU_var.reltest.cursor == 0)))
+  {
+    if(BUTTON_Bypass_count == 1)
+    {
+      if(global.ind_relays > 0) global.ind_relays--;
+      update=1;
+    }
+    if(BUTTON_Auto_count == 1)
+    {
+      if(global.ind_relays < 0x7f) global.ind_relays++;
+      update=1;
+    }
+  }
+
+  if(update)
+  {
     UTILI_SetRelays();
     MENU_RelTest_Update();
-   }
-    
-  
+  }
 }
-
-
 //-- MENU_CalMenu -------------------------------------------------------------------------------------------------
 
 static void MENU_CalPWR_Update(void)
@@ -911,7 +843,6 @@ static void MENU_CalPWR_Init(void)
   BUTTON_Reset();
 
   MENU_CalPWR_Update();
-
 }
 
 static void MENU_CalPWR_Run(void)
@@ -922,11 +853,9 @@ static void MENU_CalPWR_Run(void)
     MENU_CalPWR_Update();
   }
 
-
   if (BUTTON_count == BUTTON_LONG_PRESSED)
   {
     BUTTON_count -= BUTTON_LONG_REPEAT_DELAY_MAX;
-
 
     if ((MENU_var.cal.cursor == 0)&&(MENU_var.cal.step <=1)) //cursor at "Power"
     {
@@ -946,9 +875,7 @@ static void MENU_CalPWR_Run(void)
       }
 
       MENU_var.cal.cal_point[MENU_var.cal.step] = value;
-      
       MENU_CalPWR_Update();
-
     } 
     else //cursor at "ESC"
     {
@@ -977,7 +904,6 @@ static void MENU_CalPWR_Run(void)
     //Wait end of power
     if (global.adc_f_mV < ADC_CAL_STOP)
     {
-     
       MENU_var.cal.step--;  //steps 2->1 & 3->2
       if (MENU_var.cal.step == 1)
       {
@@ -989,37 +915,11 @@ static void MENU_CalPWR_Run(void)
         global.cal_point[0] = MENU_var.cal.cal_point[0];
         global.cal_point[1] = MENU_var.cal.cal_point[1];
 
-        //        char str[8];         
-        //        UART_WriteStr("Point 0: ");
-        //        UTILI_Int2Str(global.cal_point[0],str,sizeof(str));
-        //        UART_WriteStrLn(str);        
-
-        //        UART_WriteStr("Point 1: ");
-        //        UTILI_Int2Str(global.cal_point[1],str,sizeof(str));
-        //        UART_WriteStrLn(str); 
-
         int16_t y1 = UTILI_deciWatt_to_centiVolt(global.cal_point[0]);  
         int16_t y2 = UTILI_deciWatt_to_centiVolt(global.cal_point[1]);
 
-        //        UART_WriteStr("Point V 0: ");
-        //        UTILI_Int2Str(y1,str,sizeof(str));
-        //        UART_WriteStrLn(str);        
-
-        //        UART_WriteStr("Point V 1: ");
-        //        UTILI_Int2Str(y2,str,sizeof(str));
-        //        UART_WriteStrLn(str); 
-
         global.cal_gain = (int16_t) (((y2 - y1) * (int32_t) CAL_GAIN_MULTIPLIER) / (MENU_var.cal.adc_value[1] - MENU_var.cal.adc_value[0]));
-
-        //        UART_WriteStr("Gain: ");
-        //        UTILI_Int2Str(global.cal_gain,str,sizeof(str));
-        //        UART_WriteStrLn(str); 
-
         global.cal_offset = y1 - (int16_t) (((int32_t) global.cal_gain * MENU_var.cal.adc_value[0]) / CAL_GAIN_MULTIPLIER);
-
-        //        UART_WriteStr("Offset: ");
-        //        UTILI_Int2Str(global.cal_offset,str,sizeof(str));
-        //        UART_WriteStrLn(str); 
 
         //Save new cal values to eeprom
         EEPROM_Write((uint8_t)&ee_cal_point_0, &global.cal_point[0], sizeof (ee_cal_point_0));
@@ -1034,28 +934,7 @@ static void MENU_CalPWR_Run(void)
   }
 
   MENU_var.cal.adc_value_old = global.adc_f_mV;
-
-
-
 }
-
-
-
-
-//static void MENU_Back_Init(void)
-//{
-//  const menu_t* ptrMenu;
-//  if(stack_index > 1)
-//  {
-//    stack_index--;
-//    stack_index--;
-//    ptrMenu = (menu_t*) stack_menu[stack_index];
-//    ptrMenu->Init(); 
-//
-//  }
-//}
-
-
 //-- MENU_Setup -------------------------------------------------------------------------------------------------
 static void MENU_SubSetup_Init(void)
 {
@@ -1069,12 +948,9 @@ static void MENU_SubSetup_Init(void)
   MENU_var.sub.ptrMenu = ptrSubSetupMenu;
   
   MENU_Sub_Update();
-  
 }
 
 //-- MENU_Sub -------------------------------------------------------------------------------------------------
-
-
 static void MENU_SubTop_Init(void)
 {
   DISP_Clr();
@@ -1087,15 +963,12 @@ static void MENU_SubTop_Init(void)
   MENU_var.sub.ptrMenu = ptrSubTopMenu;
   
   MENU_Sub_Update();
-  
 }
-
 
 static void MENU_Sub_Update(void)
 {
   //Show 4 lines of the sub menu and highlight the current cursor item
   uint8_t pos = MENU_var.sub.top;
-  
   
   for(uint8_t i = 0; i < 4; i++)
   {
@@ -1104,11 +977,8 @@ static void MENU_Sub_Update(void)
   }
 }
 
-
-
 static void MENU_Sub_Run(void)
 {
-  
   //Timeout
   MENU_var.sub.timeout++;
   if(MENU_var.sub.timeout >= MENU_SUB_TIMEOUT)
@@ -1152,7 +1022,6 @@ static void MENU_Sub_Run(void)
     }
       
     MENU_Sub_Update();
-    
   }
   
    if (BUTTON_count == BUTTON_LONG_PRESSED)
@@ -1160,10 +1029,7 @@ static void MENU_Sub_Run(void)
      current_menu = MENU_var.sub.ptrMenu[MENU_var.sub.cursor];
      current_menu->Init();
    }
-  
- 
 }
-
 //-- MENU_Load_Save_Memory -------------------------------------------------------------------------------------------------
 
 static void MENU_Memory_Update(void)
@@ -1175,8 +1041,6 @@ static void MENU_Memory_Update(void)
     tunemem_t tunemem;
     uint8_t bytes[sizeof(tunemem_t) +1]; //make the union one byte longer
   }memory;
-  
-
   
   for(uint8_t i = 0; i < 3; i++)
   {
@@ -1190,7 +1054,6 @@ static void MENU_Memory_Update(void)
     DISP_Str(2,i+1,memory.tunemem.str_name, (index == MENU_var.memory.cursor));        
   }
 }
-
 
 static void MENU_Memory_Init(void)
 {
@@ -1217,13 +1080,8 @@ static void MENU_MemorySave_Init(void)
   MENU_Memory_Init(); 
 }
 
-
-
-
-
 static void MENU_Memory_Run(void)
 {
-  
   //Timeout
   MENU_var.memory.timeout++;
   if(MENU_var.memory.timeout >= MENU_MEMORY_TIMEOUT)
@@ -1266,7 +1124,6 @@ static void MENU_Memory_Run(void)
     }
       
     MENU_Memory_Update();
-    
   }
 
   if (BUTTON_count == BUTTON_LONG_PRESSED)
@@ -1276,14 +1133,12 @@ static void MENU_Memory_Run(void)
       if(MENU_var.memory.cursor == 0) //Startup
       {
        current_menu = &menuStartupSave;
-
       }
       else
       {
        MENU_var.nameedit.mem_index = MENU_var.memory.cursor;
        current_menu = &menuNameEdit;
       }
-      
       current_menu->Init();
       return;
     }
@@ -1297,16 +1152,12 @@ static void MENU_Memory_Run(void)
       return;
     }
   }
-  
-  
 }
-
 //-- MENU_NameEdit -------------------------------------------------------------------------------------------------
 
 static void MENU_NameEdit_Update(void)
 {
   uint8_t i;
-  
   
   //name
   for(i=0; i<TUNEMEM_STRLEN; i++)
@@ -1314,15 +1165,9 @@ static void MENU_NameEdit_Update(void)
     DISP_Char(2+i, 0, MENU_var.nameedit.tunemem.str_name[i],(MENU_var.nameedit.cursor == i));
   }
   
-  
   //char list
-  
-  
-  
   if(MENU_var.nameedit.cursor < TUNEMEM_STRLEN)
   {
-    
-    
     //find the position of the char under the cursor
     char c = MENU_var.nameedit.tunemem.str_name[MENU_var.nameedit.cursor];
     i=0;
@@ -1330,9 +1175,7 @@ static void MENU_NameEdit_Update(void)
     {
       i++;
     }
-    
     DISP_Char(2,1,c,1); //print char under cursor invert
-    
     //print the following char
     for(uint8_t x=1; x< 8; x++)
     {
@@ -1349,19 +1192,12 @@ static void MENU_NameEdit_Update(void)
     DISP_Str(0, 1, str_SpaceLine,0);
   }
   
- 
- 
-  
-  
-  
-   DISP_Str(0,3,str_Save, (MENU_var.nameedit.cursor == TUNEMEM_STRLEN) );
-   DISP_Str(7,3,str_Esc, (MENU_var.nameedit.cursor == TUNEMEM_STRLEN+1));
+  DISP_Str(0,3,str_Save, (MENU_var.nameedit.cursor == TUNEMEM_STRLEN) );
+  DISP_Str(7,3,str_Esc, (MENU_var.nameedit.cursor == TUNEMEM_STRLEN+1));
 }
-
 
 static void MENU_NameEdit_Init(void)
 {
-  
   //print memory slot
   char str_index[3] = "0:";
   str_index[0] = '0' + MENU_var.nameedit.mem_index;
@@ -1373,17 +1209,14 @@ static void MENU_NameEdit_Init(void)
   MENU_var.nameedit.button_repeat_delay = BUTTON_LONG_REPEAT_DELAY_MAX;
   BUTTON_Reset();
   MENU_NameEdit_Update();
-  
 }
 
 static void MENU_NameEdit_Run(void)
 {
-  
   if(BUTTON_count == BUTTON_IDLE)
   {
     MENU_var.nameedit.button_repeat_delay = BUTTON_LONG_REPEAT_DELAY_MAX;
   }
-  
   
   if(BUTTON_count == BUTTON_RELEASED)
   {
@@ -1405,12 +1238,9 @@ static void MENU_NameEdit_Run(void)
         MENU_var.nameedit.button_repeat_delay -= BUTTON_LONG_REPEAT_DELAY_STEP;
       }
       
-      
      if(MENU_var.nameedit.cursor < TUNEMEM_STRLEN)
      {
-       
        char c = MENU_var.nameedit.tunemem.str_name[MENU_var.nameedit.cursor];
-       
        uint8_t i=0;
        while( (c != NameEditChar[i]) && (i<sizeof(NameEditChar)) )
        {
@@ -1422,12 +1252,8 @@ static void MENU_NameEdit_Run(void)
          i=0;
        }
        MENU_var.nameedit.tunemem.str_name[MENU_var.nameedit.cursor] = NameEditChar[i];
-              
        MENU_NameEdit_Update();
      }
-     
-    
-     
      //Save
      if(MENU_var.nameedit.cursor == TUNEMEM_STRLEN)
      {
@@ -1436,20 +1262,14 @@ static void MENU_NameEdit_Run(void)
        MENU_Init();
        return;
      }
-     
      //Esc
      if(MENU_var.nameedit.cursor == TUNEMEM_STRLEN+1)
      {
        MENU_Init();
        return;
      }
-             
-             
    }
 }
-
-
-
 //-- MENU_StartupSave -------------------------------------------------------------------------------------------------
 
 static void MENU_StartupSave_Update(void)
@@ -1457,7 +1277,6 @@ static void MENU_StartupSave_Update(void)
    DISP_Str(0,3,str_Save, (MENU_var.startupsave.cursor == 0));
    DISP_Str(7,3,str_Esc, (MENU_var.startupsave.cursor == 1));
 }
-
 
 static void MENU_StartupSave_Init(void)
 {
@@ -1495,13 +1314,10 @@ static void MENU_StartupSave_Run(void)
        MENU_var.startupsave.tunemem.relays = UTILI_Get_LC_Relays(); //Save current relais      
        EEPROM_Write((uint8_t)ee_tunemem , &MENU_var.startupsave.tunemem, sizeof(tunemem_t));
      }
-      
      MENU_Init();
      return;
    }
 }
-
-
 
 //-- MENU About --------------------------------------------------------------------------------------------
 
@@ -1514,13 +1330,22 @@ static void MENU_About_Init(void)
   DISP_Str(DISP_COL_CENTER,3,str_N7DCC,0);
   BUTTON_Reset();
   MENU_var.about.step=0;
+  MENU_var.about.timeout=0;
 }
 
 static void MENU_About_Run(void)
 {
+  // Timeout
+  MENU_var.about.timeout++;
+  if(MENU_var.about.timeout >= MENU_SUB_TIMEOUT)
+  {
+    MENU_Init();
+    return;
+  }
 
   if(BUTTON_count == BUTTON_SHORT_PRESSED)
   {
+    MENU_var.about.timeout = 0; // resetuj timeout po naci?ni?ciu
     if(MENU_var.about.step ==0)
     {
       MENU_var.about.step++;
@@ -1537,7 +1362,6 @@ static void MENU_About_Run(void)
     }
   }
 }  
-  
 
 //-- MENU  -------------------------------------------------------------------------------------------------
 void MENU_Init(void)
@@ -1553,4 +1377,3 @@ void MENU_Run(void)
     current_menu->Run();
   }
 }
-

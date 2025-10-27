@@ -17,7 +17,7 @@ extern "C"
 #endif
 
 
-#define TUNE_MIN_PWR   10   //10 = 1W  
+#define TUNE_MIN_PWR   5   //5 = 0.5W, 10 = 1W  
 
   
  

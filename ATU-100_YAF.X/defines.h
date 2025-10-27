@@ -31,7 +31,7 @@ extern "C"
   
 #define DISPLAY_I2C_ADDR    0x78  
 #define DISPLAY_INIT_DELAY  500  //ms
-#define DISPLAY_ROTATE      FALSE  
+#define DISPLAY_ROTATE      TRUE  
   
 #define _XTAL_FREQ 16000000
 
@@ -58,7 +58,8 @@ extern "C"
   
   
 
-  
+#define EEPROM_MAGIC_ADDR 0x00
+#define EEPROM_MAGIC_VALUE 0xA5
   
 #define UART_PIN_W LATAbits.LATA6
 #define UART_PIN_DIR TRISAbits.TRISA6
@@ -229,14 +230,14 @@ global_t extern global;
   
 
 const char str_ATU100EXT[] = "ATU-100";
-const char str_YAF[]       = "EXT-YAF";
-const char str_Version[]   =  "V0.68";
-const char str_YetAnother[] = "YetAnother";
-const char str_Firmware[] = "Firmware";
-const char str_Hardware[] = "Hardware";
-const char str_designed[] = "designed";
+const char str_YAF[]       = "EXT-YAF-2";
+const char str_Version[]   =  "V1.00";
+const char str_YetAnother[] = "Original";
+const char str_Firmware[] = "firmware";
+const char str_Hardware[] = " Forked ";
+const char str_designed[] = "firmware";
 const char str_by[] ="by";
-const char str_N7DCC[] = "N7DDC";
+const char str_N7DCC[] = "SP6PW";
 const char str_DG4SN[] = "DG4SN";
 
 const char str_SWR[]   =  "SWR";
@@ -249,8 +250,7 @@ const char str_C_L[] = ">C-L";
 const char str_L_C[] = ">L-C";
 
 
-const char str__Tune_[] = " Tune ";
-
+const char str__Tune_[] = " Tuning ";
 const char str_Esc[] = "Esc";
 //const char str_Esc_[] = "Esc ";
 const char str_Off[] = "Off";
@@ -266,11 +266,11 @@ const char str_Bypass[]    = " Bypass ";
 //const char str_Sec[] = "Sec";
 const char str_Delay[] = "Delay";
 const char str_Sleep[] = "Sleep";
-const char str_sleeping[] ="sleeping";
+const char str_sleeping[] ="";
 
 const char str_Auto[]   =  "Auto";
-const char str_Start[]   =  "Start";
-const char str_Stop[]   =  "Stop";
+const char str_Start[]   =  "Start"; //Start
+const char str_Stop[]   =  "Stop"; //Stop
 const char str_Save[]   = "Save";
 
 
@@ -287,10 +287,10 @@ const char str_MENU_About[]         =  "About     ";
   
 
 const char str_SpaceLine[] = "          ";
-const char str_WaitForHF[] = "wait f. HF";
+const char str_WaitForHF[] = "RF needed ";
 const char str_Running[]   = " Running  "; 
 const char str_Break[]     = "  Break   ";
-const char str_PWR_low[]   = " PWR low  ";
+const char str_PWR_low[]   = " Low PWR  ";
 const char str_Ready[]     = "  Ready   ";
 
  const char* str_TUNE_State[6] ={
