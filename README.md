@@ -1,13 +1,8 @@
-# Antenna tuner - ATU-100 EXT - Yet Another Firmware
+# Antenna tuner - ATU-100 EXT-YAF-2 Yet Another Firmware, debugged and improved by SP6PW
 ![ATU-100_EXT_YAF](images/ATU-100_EXT_YAF.jpg)
 
-## Motivation
-After I have bought a Chinese clone of N7DDC Antenna tune ATU-100 EXT I wasn’t really satisfied.
-The tuner was not able to work with my QRP transmitter. Also the shown power was very inaccurate.
-I have seen some room for improvement in the firmware. Unfortunately the original firmware of N7DDC was written under the mikroC IDE that is not available for free. So I decided to start the project from scratch with the Microchip MPLAB X IDE.
-
 ## The original project by N7DDC
-https://github.com/Dfinitski/N7DDC-ATU-100-mini-and-extended-boards
+https://github.com/Dfinitski/N7DDC-ATU-100-mini-and-extended-boards and https://github.com/DG4SN/ATU-100-EXT-YAF
 
 ## Imported Notes
 This firmware only works with the ATU-100_EXT (7x7) hardware, the PIC16F1938 MCU and the OLED Display 128x64px.
