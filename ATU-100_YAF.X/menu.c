@@ -3,6 +3,7 @@
 
 #define MENU_MEMORY_TIMEOUT   1000 // x 10ms
 #define MENU_SUB_TIMEOUT   1000 // x 10ms
+#define MENU_TUNING_TIMEOUT   6000 // x 10ms
 #define UPDATE_PERIODE       10 // x 10ms
 #define TUNE_UPDATE_PERIODE       50 // x 10ms
 
@@ -81,6 +82,7 @@ static union
     uint8_t update_cnt;
     uint8_t blink;
     uint16_t relays_backup;
+    uint16_t timeout;
   } tune;
 
   struct
@@ -404,12 +406,20 @@ static void MENU_Tune_Init(void)
   BUTTON_Reset();
   DISP_Str(DISP_COL_CENTER, 0, str__Tune_, 1);
   MENU_var.tune.blink=0;
-  MENU_var.tune.relays_backup = UTILI_Get_LC_Relays();
+  MENU_var.tune.timeout = 0;
   TUNE_Init();
 }
 
 static void MENU_Tune_Run(void)
 {
+// Obs?uga timeoutu wyj?cia do g?ownego ekranu
+  MENU_var.tune.timeout++;
+  if (MENU_var.tune.timeout >= MENU_TUNING_TIMEOUT)
+  {
+    MENU_Init();
+    return;
+  }
+  
   TUNE_Run();
 
   MENU_var.tune.update_cnt++;
@@ -418,10 +428,10 @@ static void MENU_Tune_Run(void)
     MENU_var.tune.update_cnt = 0;
     MENU_Tune_Update();
   }
-
+  
+// Resetuj timeout po naci?ni?ciu przycisku
   if (BUTTON_count == BUTTON_SHORT_PRESSED)
   {
-    UTILI_Set_LC_Relays(MENU_var.tune.relays_backup);
     MENU_Init();
     return;
   }
