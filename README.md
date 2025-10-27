@@ -32,7 +32,7 @@ Before you start please make a backup of the original firmware and be sure that 
 + Bypass ______*Temporary bypass the current tune settings*
 + Load Tune __ *Load tune setting from memory slots*
 + Save Tune __ *Save the current tune settings in 10 memory slots*
-+ Reset ______ *Reset the current tune settings*
++ Reset ______ *Reset all settings to defaults*
 + Setup
      - Tuning _____ *Set tune parameters (Auto tune on/off)*
      * Sleep ______ *Set sleep mode and time*
@@ -47,7 +47,7 @@ For calibration you need a transmitter with adjustable TX power and a dummy load
 ![Calibration](images/Calibrate_setup.png)
 
 ## Programmer
-For programming a PICkit3 programmer is used.
+For programming a PICkit3 or XGecu T48 programmer is used.
 When the ATU-100 is switched off, connect it in the shown way.
 After that switch on the ATU-100.
 ![PICkit](images/PICkit.jpg)
