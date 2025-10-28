@@ -2,7 +2,7 @@
 ![ATU-100_EXT_YAF](images/ATU-100_EXT_YAF.jpg)
 
 ## The original projects by N7DDC and DG4SN
-https://github.com/Dfinitski/N7DDC-ATU-100-mini-and-extended-boards and https://github.com/DG4SN/ATU-100-EXT-YAF
+https://github.com/Dfinitski/N7DDC-ATU-100-mini-and-extended-boards and https://github.com/DG4SN/ATU-100-EXT-YAF,
 Many thanks for them :)
 
 ## Imported Notes
