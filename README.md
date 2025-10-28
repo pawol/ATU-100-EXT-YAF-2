@@ -7,6 +7,7 @@ Many thanks for them :)
 
 ## Imported Notes
 This firmware only works with the ATU-100_EXT (7x7) hardware, the PIC16F1938 MCU and the OLED Display 128x64px.
+In some ATUs can be necessary to rotate display in defines.h by #define DISPLAY_ROTATE FALSE or #define DISPLAY_ROTATE TRUE.
 Before you start please make a backup of the original firmware and be sure that you can restore it.
 ```diff
 - You act at your own risk!
