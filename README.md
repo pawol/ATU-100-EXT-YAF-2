@@ -2,7 +2,7 @@
 ![ATU-100_EXT_YAF](images/ATU-100_EXT_YAF.jpg)
 
 ## The original projects by N7DDC and DG4SN
-https://github.com/Dfinitski/N7DDC-ATU-100-mini-and-extended-boards and https://github.com/DG4SN/ATU-100-EXT-YAF,
+https://github.com/Dfinitski/N7DDC-ATU-100-mini-and-extended-boards and https://github.com/DG4SN/ATU-100-EXT-YAF .
 Many thanks for them :)
 
 ## Imported Notes
@@ -15,9 +15,9 @@ Before you start please make a backup of the original firmware and be sure that 
 + Function menu on display – one button operation
 + 10 memory slots for tune-settings one of them as a startup setting
 + Calibration function for the integrated power meter
-+ Configurable Auto-Tune function
-+ Sleep function for battery saving
-+ Temporary Bypass function 
++ Configurable Auto-Tuning function
++ Sleep function for battery saving in every menu, relays state backup and recovery
++ Bypass function 
 
 ## Button functions
 **Button short pressed:** _____ *Start Tuning or select next item* 
@@ -25,22 +25,22 @@ Before you start please make a backup of the original firmware and be sure that 
 **Button long pressed:** ______ *Enter Menu or change value* 
 
 ## Menu-tree
-+ Bypass ______*Temporary bypass the current tune settings*
++ Bypass ______*Bypass the current tuning settings*
 + Load Tune __ *Load tune setting from memory slots*
-+ Save Tune __ *Save the current tune settings in 10 memory slots*
++ Save Tune __ *Save the current tuning settings in 10 memory slots*
 + Reset ______ *Reset all settings to defaults*
 + Setup
-     - Tuning _____ *Set tune parameters (Auto tune on/off)*
+     - Tuning _____ *Set tune parameters (Auto tune on/off), SWR start and stop tresholds*
      * Sleep ______ *Set sleep mode and time*
      * Calibrate __ *Calibrate the power measurement at two points*
      * Test _______ *Test function for each relay*
-+ About ______ *Who did it*
++ About ______ *Who developed it*
 
 ## Calibration
 The firmware includes a two point calibration function for the integrated power meter.
 It is recommend to calibrate on the lowest (max 10W) and highest (max 100W) used power level.
 For calibration you need a transmitter with adjustable TX power and a dummy load.
-![Calibration](images/Calibrate_setup.png)
+![Calibration](images/Calibrate_setup.png). Now is precalibrated.
 
 ## Programmer
 For programming a PICkit3 or XGecu T48 programmer is used.
