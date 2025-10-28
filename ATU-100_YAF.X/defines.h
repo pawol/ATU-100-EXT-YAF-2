@@ -231,7 +231,7 @@ global_t extern global;
 
 const char str_ATU100EXT[] = "ATU-100";
 const char str_YAF[]       = "EXT-YAF-2";
-const char str_Version[]   =  "V1.00";
+const char str_Version[]   =  "V1.02";
 const char str_YetAnother[] = "Original";
 const char str_Firmware[] = "firmware";
 const char str_Hardware[] = " Forked ";
