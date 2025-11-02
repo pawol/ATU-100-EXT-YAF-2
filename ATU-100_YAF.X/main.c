@@ -166,13 +166,10 @@ void main(void)
   
   //uint8_t c;
   
-  EEPROM_InitDefault();
   MAIN_Init();
   EEPROM_Init();
   BUTTON_Init();
   ADC_Init();
- 
-
   
   #ifdef DEBUG_UART
   UART_Init();

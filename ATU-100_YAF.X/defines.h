@@ -56,11 +56,6 @@ extern "C"
 #define DIR_OUTPUT 0
 #define DIR_INPUT 1  
   
-  
-
-#define EEPROM_MAGIC_ADDR 0x00
-#define EEPROM_MAGIC_VALUE 0xA5
-  
 #define UART_PIN_W LATAbits.LATA6
 #define UART_PIN_DIR TRISAbits.TRISA6
   
@@ -231,14 +226,19 @@ global_t extern global;
 
 const char str_ATU100EXT[] = "ATU-100";
 const char str_YAF[]       = "EXT-YAF-2";
-const char str_Version[]   =  "V1.02";
-const char str_YetAnother[] = "Original";
-const char str_Firmware[] = "firmware";
-const char str_Hardware[] = " Forked ";
-const char str_designed[] = "firmware";
-const char str_by[] ="by";
-const char str_N7DCC[] = "SP6PW";
-const char str_DG4SN[] = "DG4SN";
+const char str_Version[]   =  "V1.04";
+const char str_about1_line1[] = "Current";
+const char str_about1_line2[] = "firmware";
+const char str_about1_line3[] = "by";
+const char str_about1_line4[] = "SP6PW";
+const char str_about2_line1[] = "Based on";
+const char str_about2_line2[] = "YAF";
+const char str_about2_line3[] = "by";
+const char str_about2_line4[] = "DG4SN";
+const char str_about3_line1[] = "Hardware";
+const char str_about3_line2[] = "designed";
+const char str_about3_line3[] = "by";
+const char str_about3_line4[] = "N7DCC";
 
 const char str_SWR[]   =  "SWR";
 const char str_PWR[]   =  "PWR";
@@ -274,7 +274,7 @@ const char str_Stop[]   =  "Stop"; //Stop
 const char str_Save[]   = "Save";
 
 
-const char str_MENU_Reset[]         =  "Reset     ";
+const char str_MENU_Reset[]         =  "Reset all ";
 const char str_MENU_Bypass[]        =  "Bypass    ";
 const char str_MENU_Save[]          =  "Save Tune ";
 const char str_MENU_Load[]          =  "Load Tune ";

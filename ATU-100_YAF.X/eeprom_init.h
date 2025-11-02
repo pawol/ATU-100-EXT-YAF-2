@@ -3,12 +3,7 @@
 
 #ifndef EEPROM_INIT_H
 #define EEPROM_INIT_H
-
 #include <stdint.h>
-
-// Adres i warto?? magicznego bajtu
-#define MAGIC_BYTE1_ADDR 0xFF
-#define MAGIC_BYTE1_VAL  0xF3
 #define EEPROM_INIT_DATA_SIZE 256
 
 #ifdef __cplusplus
@@ -35,7 +30,7 @@ void eeprom_write(uint8_t addr, uint8_t value);
 
 /**
  * Odczytuje jeden bajt z EEPROM spod wskazanego adresu.
- * Implementacja dla XC8 znajduje si? w eeprom_init.c.
+ * Implementacja dla XC8 znajduje sie w eeprom_init.c.
  */
 uint8_t eeprom_read(uint8_t addr);
 

@@ -3,7 +3,7 @@
 
 #define MENU_MEMORY_TIMEOUT   1000 // x 10ms
 #define MENU_SUB_TIMEOUT   1000 // x 10ms
-#define MENU_TUNING_TIMEOUT   6000 // x 10ms
+#define MENU_RETURN_TIMEOUT   6000 // x 10ms
 #define UPDATE_PERIODE       10 // x 10ms
 #define TUNE_UPDATE_PERIODE       50 // x 10ms
 
@@ -42,6 +42,7 @@ static union
     uint8_t cursor;
     uint16_t relais_backup;
     uint8_t update_cnt;
+    uint16_t timeout; 
   } reltest;
 
   struct
@@ -50,6 +51,7 @@ static union
     int16_t stop_swr;
     int16_t auto_swr;
     uint8_t auto_enable;
+    uint16_t timeout;
   } tparam;
   
   struct
@@ -57,6 +59,7 @@ static union
     uint8_t cursor;
     uint8_t enable;
     int16_t delay_sec;
+    uint16_t timeout;
   } sleep; 
   
   struct
@@ -92,7 +95,7 @@ static union
     int16_t cal_point[2];
     int16_t adc_value[2];
     int16_t adc_value_old;
-
+    uint16_t timeout;
   } cal;
   struct
   {
@@ -114,6 +117,7 @@ static union
     uint8_t cursor;
     uint8_t button_repeat_delay;
     tunemem_t tunemem;
+    uint16_t timeout;
   }nameedit;        
           
   struct
@@ -121,7 +125,8 @@ static union
     uint8_t mem_index;
     uint8_t cursor;
     tunemem_t tunemem;
-    uint8_t str_terminate; //must stay direkt behind memory
+    uint8_t str_terminate;
+    uint16_t timeout;
   }startupsave;    
   
 } MENU_var;
@@ -364,12 +369,11 @@ static void MENU_Main_Run(void)
 //-- MENU_Reset --------------------------------------------------------------------------------------------------
 static void MENU_Reset_Init(void)
 {
-    // 1. Nadpisz magic byte z?? warto?ci?
-    eeprom_write(MAGIC_BYTE1_ADDR, 0x00);
-    // 2. Wy?wietl komunikat
+    EEPROM_InitDefault(); // Zainicjuj EEPROM domy?ln? zawarto?ci?
     DISP_Clr();
-    DISP_Str(DISP_COL_CENTER, 1, "Restarting", 1);
-    while(1); // WDT wywo?a reset
+    DISP_Str(DISP_COL_CENTER, 1, "Restarting", 1); // Wy?wietl komunikat
+    __delay_ms(500); // Poczekaj a? zapis si? zako?czy
+    while(1); // WDT wywo?a restart
 }
 
 //-- Menu Bypass --------------------------------------------------------------------------------------------------
@@ -414,7 +418,7 @@ static void MENU_Tune_Run(void)
 {
 // Obs?uga timeoutu wyj?cia do g?ownego ekranu
   MENU_var.tune.timeout++;
-  if (MENU_var.tune.timeout >= MENU_TUNING_TIMEOUT)
+  if (MENU_var.tune.timeout >= MENU_RETURN_TIMEOUT)
   {
     MENU_Init();
     return;
@@ -467,19 +471,29 @@ static void MENU_TParam_Init(void)
   BUTTON_Reset();
   DISP_Str(0, 0,str_Auto, 0);
   DISP_Str(0, 1,str_Start,0);
-  DISP_Str(0, 2,str_Stop,0); // "Targ." zawsze normalnie (nie negatyw)
-  //DISP_Str(0, 2,str_Stop,1); // "Targ." zawsze w negatywie
+  DISP_Str(0, 2,str_Stop,0); // "Stop" zawsze normalnie (nie negatyw)
+  //DISP_Str(0, 2,str_Stop,1); // "Stop" zawsze w negatywie
   MENU_var.tparam.cursor=0;
   MENU_var.tparam.auto_enable = global.tune_auto_enable;
   MENU_var.tparam.auto_swr = global.tune_auto_swr;
   MENU_var.tparam.stop_swr = global.tune_stop_swr;
+  MENU_var.tparam.timeout = 0;
   MENU_TParam_Update();
 }
 
 static void MENU_TParam_Run(void)
 {
+    // Obs?uga timeoutu
+    MENU_var.tparam.timeout++;
+    if (MENU_var.tparam.timeout >= MENU_RETURN_TIMEOUT)
+    {
+        MENU_Init();
+        return;
+    }
+    
   if (BUTTON_count == BUTTON_RELEASED)
   {
+    MENU_var.tparam.timeout = 0; // reset timeoutu
     MENU_var.tparam.cursor++;
     if (MENU_var.tparam.cursor > 4)
     {
@@ -491,6 +505,7 @@ static void MENU_TParam_Run(void)
   
   if (BUTTON_count == BUTTON_LONG_PRESSED)
   {
+    MENU_var.tparam.timeout = 0; // reset timeoutu  
     BUTTON_count -= BUTTON_LONG_REPEAT_DELAY_MAX;
     
     //cursor at "Auto"
@@ -588,13 +603,23 @@ static void MENU_Sleep_Init(void)
   MENU_var.sleep.cursor=0;
   MENU_var.sleep.enable = global.sleep_enable;
   MENU_var.sleep.delay_sec = global.sleep_delay_sec;
+  MENU_var.sleep.timeout = 0;
   MENU_Sleep_Update();
 }
 
 static void MENU_Sleep_Run(void)
 {
+  // Timeout
+  MENU_var.sleep.timeout++;
+  if (MENU_var.sleep.timeout >= MENU_RETURN_TIMEOUT)
+  {
+    MENU_Init();
+    return;
+  }
+
   if (BUTTON_count == BUTTON_RELEASED)
   {
+    MENU_var.sleep.timeout = 0; // reset timeoutu
     MENU_var.sleep.cursor++;
     if (MENU_var.sleep.cursor > 3)
     {
@@ -605,6 +630,7 @@ static void MENU_Sleep_Run(void)
   
   if (BUTTON_count == BUTTON_LONG_PRESSED)
   {
+    MENU_var.sleep.timeout = 0; // reset timeoutu
     BUTTON_count -= BUTTON_LONG_REPEAT_DELAY_MAX;
     
     //cursor at "Sleep"
@@ -658,8 +684,8 @@ static void MENU_Sleep_Run(void)
     }
   }
 }
-//-- Menu_RelTest  --------------------------------------------------------------------------------------------------
 
+//-- Menu_RelTest  --------------------------------------------------------------------------------------------------
 static void MENU_RelTest_Update(void)
 {
   uint8_t cursor = MENU_var.reltest.cursor;
@@ -699,6 +725,7 @@ static void MENU_RelTest_Init(void)
   MENU_var.reltest.cursor = 0;
   MENU_var.reltest.relais_backup = UTILI_Get_LC_Relays();
   MENU_var.reltest.update_cnt = 0;
+  MENU_var.reltest.timeout = 0;
   global.cap_sw = 0;
   global.cap_relays = 0;
   global.ind_relays = 0;
@@ -708,6 +735,15 @@ static void MENU_RelTest_Init(void)
 
 static void MENU_RelTest_Run(void)
 {
+  // Timeout
+  MENU_var.reltest.timeout++;
+  if (MENU_var.reltest.timeout >= MENU_RETURN_TIMEOUT)
+  {
+    UTILI_Set_LC_Relays(MENU_var.reltest.relais_backup);
+    MENU_Init();
+    return;
+  }
+
   MENU_var.reltest.update_cnt++;
   if (MENU_var.reltest.update_cnt == UPDATE_PERIODE)
   {
@@ -720,17 +756,18 @@ static void MENU_RelTest_Run(void)
 
   if (BUTTON_count == BUTTON_RELEASED)
   {
+    MENU_var.reltest.timeout = 0; // reset timeoutu
     MENU_var.reltest.cursor++;
     if (MENU_var.reltest.cursor > 3)
     {
       MENU_var.reltest.cursor = 0;
     }
-
     MENU_RelTest_Update();
   }
 
   if (BUTTON_count == BUTTON_LONG_PRESSED)
   {
+    MENU_var.reltest.timeout = 0; // reset timeoutu
     BUTTON_count -= BUTTON_LONG_REPEAT_DELAY_MAX;
 
     //cursor at "cap"
@@ -773,7 +810,6 @@ static void MENU_RelTest_Run(void)
 
     if (MENU_var.reltest.cursor == 3) //cursor at "Esc"
     {
-      //Restore C/L settings
       UTILI_Set_LC_Relays(MENU_var.reltest.relais_backup);
       MENU_Init();
       return;
@@ -822,12 +858,13 @@ static void MENU_RelTest_Run(void)
 
   if(update)
   {
+    MENU_var.reltest.timeout = 0; // reset timeoutu
     UTILI_SetRelays();
     MENU_RelTest_Update();
   }
 }
-//-- MENU_CalMenu -------------------------------------------------------------------------------------------------
 
+//-- MENU_CalMenu -------------------------------------------------------------------------------------------------
 static void MENU_CalPWR_Update(void)
 {
   char str[2] = " ";
@@ -850,21 +887,31 @@ static void MENU_CalPWR_Init(void)
   MENU_var.cal.step = 0;
   MENU_var.cal.cal_point[0] = global.cal_point[0];
   MENU_var.cal.cal_point[1] = global.cal_point[1];
+  MENU_var.cal.timeout = 0;
   BUTTON_Reset();
-
   MENU_CalPWR_Update();
 }
 
 static void MENU_CalPWR_Run(void)
 {
+  // Timeout
+  MENU_var.cal.timeout++;
+  if (MENU_var.cal.timeout >= MENU_RETURN_TIMEOUT)
+  {
+    MENU_Init();
+    return;
+  }
+
   if (BUTTON_count == BUTTON_RELEASED)
   {
+    MENU_var.cal.timeout = 0; // reset timeoutu
     MENU_var.cal.cursor = MENU_var.cal.cursor ^ 0x01; // value 0 or 1
     MENU_CalPWR_Update();
   }
 
   if (BUTTON_count == BUTTON_LONG_PRESSED)
   {
+    MENU_var.cal.timeout = 0; // reset timeoutu
     BUTTON_count -= BUTTON_LONG_REPEAT_DELAY_MAX;
 
     if ((MENU_var.cal.cursor == 0)&&(MENU_var.cal.step <=1)) //cursor at "Power"
@@ -945,6 +992,7 @@ static void MENU_CalPWR_Run(void)
 
   MENU_var.cal.adc_value_old = global.adc_f_mV;
 }
+
 //-- MENU_Setup -------------------------------------------------------------------------------------------------
 static void MENU_SubSetup_Init(void)
 {
@@ -1208,80 +1256,90 @@ static void MENU_NameEdit_Update(void)
 
 static void MENU_NameEdit_Init(void)
 {
-  //print memory slot
-  char str_index[3] = "0:";
-  str_index[0] = '0' + MENU_var.nameedit.mem_index;
-  DISP_Clr();
-  DISP_Str(0, 0,str_index,0);
-  
-  EEPROM_Read((uint8_t)&ee_tunemem + (sizeof(tunemem_t) * MENU_var.nameedit.mem_index) , &MENU_var.nameedit.tunemem, sizeof(tunemem_t));
-  MENU_var.nameedit.cursor=0;
-  MENU_var.nameedit.button_repeat_delay = BUTTON_LONG_REPEAT_DELAY_MAX;
-  BUTTON_Reset();
-  MENU_NameEdit_Update();
+    //print memory slot
+    char str_index[3] = "0:";
+    str_index[0] = '0' + MENU_var.nameedit.mem_index;
+    DISP_Clr();
+    DISP_Str(0, 0,str_index,0);
+
+    EEPROM_Read((uint8_t)&ee_tunemem + (sizeof(tunemem_t) * MENU_var.nameedit.mem_index) , &MENU_var.nameedit.tunemem, sizeof(tunemem_t));
+    MENU_var.nameedit.cursor=0;
+    MENU_var.nameedit.button_repeat_delay = BUTTON_LONG_REPEAT_DELAY_MAX;
+    MENU_var.nameedit.timeout = 0; // <-- dodane
+    BUTTON_Reset();
+    MENU_NameEdit_Update();
 }
 
 static void MENU_NameEdit_Run(void)
 {
-  if(BUTTON_count == BUTTON_IDLE)
-  {
-    MENU_var.nameedit.button_repeat_delay = BUTTON_LONG_REPEAT_DELAY_MAX;
-  }
-  
-  if(BUTTON_count == BUTTON_RELEASED)
-  {
-    //move cursor
-    MENU_var.nameedit.cursor++;
-    if(MENU_var.nameedit.cursor > TUNEMEM_STRLEN+1)
+    MENU_var.nameedit.timeout++;
+    if (MENU_var.nameedit.timeout >= MENU_RETURN_TIMEOUT)
     {
-      MENU_var.nameedit.cursor=0;
-    } 
-    MENU_NameEdit_Update();
-  }
-  
-   if (BUTTON_count == BUTTON_LONG_PRESSED)
-   {
-      BUTTON_count -= MENU_var.nameedit.button_repeat_delay;
-     
-      if(MENU_var.nameedit.button_repeat_delay > BUTTON_LONG_REPEAT_DELAY_MIN)
-      {
-        MENU_var.nameedit.button_repeat_delay -= BUTTON_LONG_REPEAT_DELAY_STEP;
-      }
-      
-     if(MENU_var.nameedit.cursor < TUNEMEM_STRLEN)
-     {
-       char c = MENU_var.nameedit.tunemem.str_name[MENU_var.nameedit.cursor];
-       uint8_t i=0;
-       while( (c != NameEditChar[i]) && (i<sizeof(NameEditChar)) )
-       {
-         i++;
-       }
-       i++; //next char in list
-       if (i >= (sizeof(NameEditChar)-1) )
-       {
-         i=0;
-       }
-       MENU_var.nameedit.tunemem.str_name[MENU_var.nameedit.cursor] = NameEditChar[i];
-       MENU_NameEdit_Update();
-     }
-     //Save
-     if(MENU_var.nameedit.cursor == TUNEMEM_STRLEN)
-     {
-       MENU_var.nameedit.tunemem.relays = UTILI_Get_LC_Relays(); //Save current relais
-       EEPROM_Write((uint8_t)ee_tunemem + (sizeof(tunemem_t) * MENU_var.nameedit.mem_index) , &MENU_var.nameedit.tunemem, sizeof(tunemem_t));
-       MENU_Init();
-       return;
-     }
-     //Esc
-     if(MENU_var.nameedit.cursor == TUNEMEM_STRLEN+1)
-     {
-       MENU_Init();
-       return;
-     }
-   }
-}
-//-- MENU_StartupSave -------------------------------------------------------------------------------------------------
+        MENU_Init();
+        return;
+    }
 
+    if(BUTTON_count == BUTTON_IDLE)
+    {
+        MENU_var.nameedit.button_repeat_delay = BUTTON_LONG_REPEAT_DELAY_MAX;
+    }
+
+    if(BUTTON_count == BUTTON_RELEASED)
+    {
+        MENU_var.nameedit.timeout = 0; // reset timeoutu
+        //move cursor
+        MENU_var.nameedit.cursor++;
+        if(MENU_var.nameedit.cursor > TUNEMEM_STRLEN+1)
+        {
+            MENU_var.nameedit.cursor=0;
+        } 
+        MENU_NameEdit_Update();
+    }
+
+    if (BUTTON_count == BUTTON_LONG_PRESSED)
+    {
+        MENU_var.nameedit.timeout = 0; // reset timeoutu
+        BUTTON_count -= MENU_var.nameedit.button_repeat_delay;
+
+        if(MENU_var.nameedit.button_repeat_delay > BUTTON_LONG_REPEAT_DELAY_MIN)
+        {
+            MENU_var.nameedit.button_repeat_delay -= BUTTON_LONG_REPEAT_DELAY_STEP;
+        }
+
+        if(MENU_var.nameedit.cursor < TUNEMEM_STRLEN)
+        {
+            char c = MENU_var.nameedit.tunemem.str_name[MENU_var.nameedit.cursor];
+            uint8_t i=0;
+            while( (c != NameEditChar[i]) && (i<sizeof(NameEditChar)) )
+            {
+                i++;
+            }
+            i++; //next char in list
+            if (i >= (sizeof(NameEditChar)-1) )
+            {
+                i=0;
+            }
+            MENU_var.nameedit.tunemem.str_name[MENU_var.nameedit.cursor] = NameEditChar[i];
+            MENU_NameEdit_Update();
+        }
+        //Save
+        if(MENU_var.nameedit.cursor == TUNEMEM_STRLEN)
+        {
+            MENU_var.nameedit.tunemem.relays = UTILI_Get_LC_Relays(); //Save current relais
+            EEPROM_Write((uint8_t)ee_tunemem + (sizeof(tunemem_t) * MENU_var.nameedit.mem_index) , &MENU_var.nameedit.tunemem, sizeof(tunemem_t));
+            MENU_Init();
+            return;
+        }
+        //Esc
+        if(MENU_var.nameedit.cursor == TUNEMEM_STRLEN+1)
+        {
+            MENU_Init();
+            return;
+        }
+    }
+}
+
+//-- MENU_StartupSave -------------------------------------------------------------------------------------------------
 static void MENU_StartupSave_Update(void)
 {
    DISP_Str(0,3,str_Save, (MENU_var.startupsave.cursor == 0));
@@ -1290,54 +1348,63 @@ static void MENU_StartupSave_Update(void)
 
 static void MENU_StartupSave_Init(void)
 {
-  DISP_Clr();
-  char str_index[3] = "0:";
-  DISP_Str(0, 1,str_index,0);
-  
-  EEPROM_Read((uint8_t)&ee_tunemem , &MENU_var.startupsave.tunemem, sizeof(tunemem_t));
-  MENU_var.startupsave.str_terminate=0; //Terminat string 
-  DISP_Str(2, 1,MENU_var.startupsave.tunemem.str_name, 0);  
-  
-  MENU_var.startupsave.cursor=0; 
-  BUTTON_Reset();
-  MENU_StartupSave_Update();
+    DISP_Clr();
+    char str_index[3] = "0:";
+    DISP_Str(0, 1,str_index,0);
+
+    EEPROM_Read((uint8_t)&ee_tunemem , &MENU_var.startupsave.tunemem, sizeof(tunemem_t));
+    MENU_var.startupsave.str_terminate=0; //Terminat string 
+    DISP_Str(2, 1,MENU_var.startupsave.tunemem.str_name, 0);  
+
+    MENU_var.startupsave.cursor=0; 
+    MENU_var.startupsave.timeout = 0; // <-- dodane
+    BUTTON_Reset();
+    MENU_StartupSave_Update();
 }
 
 static void MENU_StartupSave_Run(void)
 {
-  if(BUTTON_count == BUTTON_RELEASED)
-  {
-    //move cursor
-    MENU_var.startupsave.cursor++;
-    if(MENU_var.startupsave.cursor > 1)
+    MENU_var.startupsave.timeout++;
+    if (MENU_var.startupsave.timeout >= MENU_RETURN_TIMEOUT)
     {
-      MENU_var.startupsave.cursor=0;
-    } 
-    MENU_StartupSave_Update();
-  }
-  
-   if (BUTTON_count == BUTTON_LONG_PRESSED)
-   {
-     //Save
-     if(MENU_var.startupsave.cursor == 0)
-     {
-       MENU_var.startupsave.tunemem.relays = UTILI_Get_LC_Relays(); //Save current relais      
-       EEPROM_Write((uint8_t)ee_tunemem , &MENU_var.startupsave.tunemem, sizeof(tunemem_t));
-     }
-     MENU_Init();
-     return;
-   }
+        MENU_Init();
+        return;
+    }
+
+    if(BUTTON_count == BUTTON_RELEASED)
+    {
+        MENU_var.startupsave.timeout = 0; // reset timeoutu
+        //move cursor
+        MENU_var.startupsave.cursor++;
+        if(MENU_var.startupsave.cursor > 1)
+        {
+            MENU_var.startupsave.cursor=0;
+        } 
+        MENU_StartupSave_Update();
+    }
+
+    if (BUTTON_count == BUTTON_LONG_PRESSED)
+    {
+        MENU_var.startupsave.timeout = 0; // reset timeoutu
+        //Save
+        if(MENU_var.startupsave.cursor == 0)
+        {
+            MENU_var.startupsave.tunemem.relays = UTILI_Get_LC_Relays(); //Save current relais      
+            EEPROM_Write((uint8_t)ee_tunemem , &MENU_var.startupsave.tunemem, sizeof(tunemem_t));
+        }
+        MENU_Init();
+        return;
+    }
 }
 
 //-- MENU About --------------------------------------------------------------------------------------------
-
 static void MENU_About_Init(void)
 {
   DISP_Clr();
-  DISP_Str(DISP_COL_CENTER,0,str_Hardware,0);
-  DISP_Str(DISP_COL_CENTER,1,str_designed,0);
-  DISP_Str(DISP_COL_CENTER,2,str_by,0);
-  DISP_Str(DISP_COL_CENTER,3,str_N7DCC,0);
+  DISP_Str(DISP_COL_CENTER,0,str_about1_line1,0);
+  DISP_Str(DISP_COL_CENTER,1,str_about1_line2,0);
+  DISP_Str(DISP_COL_CENTER,2,str_about1_line3,0);
+  DISP_Str(DISP_COL_CENTER,3,str_about1_line4,0);
   BUTTON_Reset();
   MENU_var.about.step=0;
   MENU_var.about.timeout=0;
@@ -1356,14 +1423,23 @@ static void MENU_About_Run(void)
   if(BUTTON_count == BUTTON_SHORT_PRESSED)
   {
     MENU_var.about.timeout = 0; // resetuj timeout po naci?ni?ciu
-    if(MENU_var.about.step ==0)
+    if(MENU_var.about.step == 0)
     {
       MENU_var.about.step++;
       DISP_Clr();
-      DISP_Str(DISP_COL_CENTER,0,str_YetAnother,0);
-      DISP_Str(DISP_COL_CENTER,1,str_Firmware,0);
-      DISP_Str(DISP_COL_CENTER,2,str_by,0);
-      DISP_Str(DISP_COL_CENTER,3,str_DG4SN,0);
+      DISP_Str(DISP_COL_CENTER,0,str_about2_line1,0);
+      DISP_Str(DISP_COL_CENTER,1,str_about2_line2,0);
+      DISP_Str(DISP_COL_CENTER,2,str_about2_line3,0);
+      DISP_Str(DISP_COL_CENTER,3,str_about2_line4,0);
+    }
+    else if(MENU_var.about.step == 1)
+    {
+      MENU_var.about.step++;
+      DISP_Clr();
+      DISP_Str(DISP_COL_CENTER,0,str_about3_line1,0);
+      DISP_Str(DISP_COL_CENTER,1,str_about3_line2,0);
+      DISP_Str(DISP_COL_CENTER,2,str_about3_line3,0);
+      DISP_Str(DISP_COL_CENTER,3,str_about3_line4,0);
     }
     else
     {
@@ -1371,7 +1447,7 @@ static void MENU_About_Run(void)
       return;
     }
   }
-}  
+} 
 
 //-- MENU  -------------------------------------------------------------------------------------------------
 void MENU_Init(void)
