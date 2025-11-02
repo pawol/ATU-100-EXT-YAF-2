@@ -46,17 +46,18 @@ For calibration you need a transmitter with adjustable TX power and a dummy load
 ## Programmer
 For programming a PICkit3 or XGecu T48 programmer is used.
 When the ATU-100 is switched off, connect it in the shown way.
-After that switch on the ATU-100.
+After that switch on the ATU-100
 ![PICkit](images/PICkit.jpg)
+You do not need flash eeprom because you can reinit every setting to default value by menu "Reset all"
 
 ## Programming Tool
 If you only like to flash the firmware you can use the Microchip Integrated Programming Environment
-**MPLAB X IPE**.
-The needed hex-file you find in the *dist* folder.
+**MPLAB X IDE**.
+The needed hex-file you find as the latest release
 ![MPLAB_X_IPE](images/MPLAB_X_IPE.png)
 
 ## Development IDE
-For development the Microchip **MPLAB X IDE v6.00** was used.
+For development the Microchip **MPLAB X IDE v6.25** was used.
 The IDE is available for free on the Microchip web side.
 ![MPLAB_X_IDE](images/MPLAB_X_IDE.png)
 
