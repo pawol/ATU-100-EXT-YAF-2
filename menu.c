@@ -8,19 +8,14 @@
 #define MENU_RETURN_TIMEOUT   6000 // x 10ms
 #define UPDATE_PERIODE       10 // x 10ms
 #define TUNE_UPDATE_PERIODE       50 // x 10ms
-
 #define CAL_STEP0_MAX   200  //  x 0.1W = 10W
 #define CAL_STEP1_MAX   1000 //  x 0.1W = 100W
-
 #define ADC_CAL_START   100 //mV
 #define ADC_CAL_STOP      5 //mV
-
 #define TUNE_AUTO_MIN_SWR   120 
 #define TUNE_AUTO_MAX_SWR   300
-
 #define TUNE_STOP_MIN_SWR   100 
 #define TUNE_STOP_MAX_SWR   200
-
 #define SLEEP_DELAY_MAX       900
 #define SLEEP_DELAY_STEP_SLOW   5
 #define SLEEP_DELAY_STEP_FAST  10
@@ -285,8 +280,7 @@ static void MENU_Main_Run(void)
       MENU_var.main.sleep_timer=0;
    }
 
-   // if ((global.sleep_enable == TRUE) && (global.bypass_enable != TRUE)) // sleeping nie dzia?a w trybie bypass
-   if (global.sleep_enable == TRUE) // sleeping dzia?a teraz w bypass
+   if (global.sleep_enable == TRUE) // sleeping dziala teraz w bypass
    {
       if (MENU_var.main.sleep_timer < global.sleep_delay_sec)
       {
@@ -329,20 +323,21 @@ static void MENU_Main_Run(void)
          }
       }
 
-      //short press -> tuning ZAWSZE, nawet bez RF
+      //short press -> tuning lub wyjscie z bypass
       if (BUTTON_count == BUTTON_RELEASED)
       {
          if(global.bypass_enable == TRUE)
          {
             global.bypass_enable = FALSE;
             UTILI_Set_LC_Relays(global.bypass_save_relais);
+            MENU_Init();
          }
          else
          {
             current_menu = &menuTune;
             current_menu->Init();
          }
-      }
+       }
 
       //long pressed -> menu
       if (BUTTON_count == BUTTON_LONG_PRESSED)
@@ -371,11 +366,11 @@ static void MENU_Main_Run(void)
 //-- MENU_Reset --------------------------------------------------------------------------------------------------
 static void MENU_Reset_Init(void)
 {
-    EEPROM_InitDefault(); // Zainicjuj EEPROM domy?ln? zawarto?ci?
+    EEPROM_InitDefault(); // Zainicjuj EEPROM domyslna zawartoscia
     DISP_Clr();
-    DISP_Str(DISP_COL_CENTER, 1, "Restarting", 1); // Wy?wietl komunikat
-    __delay_ms(500); // Poczekaj a? zapis si? zako?czy
-    while(1); // WDT wywo?a restart
+    DISP_Str(DISP_COL_CENTER, 1, str_Resetting, 1); // Wyswietl komunikat
+    __delay_ms(500); // Poczekaj az zapis sie zakonczy
+    while(1); // WDT wywola restart
 }
 
 //-- Menu Bypass --------------------------------------------------------------------------------------------------
@@ -473,8 +468,7 @@ static void MENU_TParam_Init(void)
   BUTTON_Reset();
   DISP_Str(0, 0,str_Auto, 0);
   DISP_Str(0, 1,str_Start,0);
-  DISP_Str(0, 2,str_Stop,0); // "Stop" zawsze normalnie (nie negatyw)
-  //DISP_Str(0, 2,str_Stop,1); // "Stop" zawsze w negatywie
+  DISP_Str(0, 2,str_Stop,0);
   MENU_var.tparam.cursor=0;
   MENU_var.tparam.auto_enable = global.tune_auto_enable;
   MENU_var.tparam.auto_swr = global.tune_auto_swr;
@@ -485,7 +479,7 @@ static void MENU_TParam_Init(void)
 
 static void MENU_TParam_Run(void)
 {
-    // Obs?uga timeoutu
+    // Obsluga timeoutu
     MENU_var.tparam.timeout++;
     if (MENU_var.tparam.timeout >= MENU_RETURN_TIMEOUT)
     {
@@ -548,13 +542,13 @@ static void MENU_TParam_Run(void)
     
 if (MENU_var.tparam.cursor == 3) //cursor at "Save"
 {
-  // Blokada: tune_stop_swr nie mo?e by? >= tune_auto_swr
+  // Blokada: tune_stop_swr nie moze byc >= tune_auto_swr
   if (MENU_var.tparam.stop_swr >= MENU_var.tparam.auto_swr)
   {
     // Automatycznie ustaw stop_swr na auto_swr - 5 (czyli -0.05 SWR)
     MENU_var.tparam.stop_swr = MENU_var.tparam.auto_swr - 5;
     MENU_TParam_Update();
-    return; // U?ytkownik musi ponownie zatwierdzi? zapis
+    return; // Uzytkownik musi ponownie zatwierdzic zapis
   }
 
   global.tune_auto_enable = MENU_var.tparam.auto_enable;

@@ -121,10 +121,10 @@ void UTILI_Int2Str(int16_t number, char *output, uint8_t size)
 /**
  * Calculate the voltage on a 50ohm resistor
  * U = sqrt( P x  50Ohm) ->  centiVolt = sqrt( P x 50Ohm) x 100 
- * centiVolt = sqrt( (deziWatt/10) x 50Ohm) x 100 
- * centiVolt = sqrt(deziWatt x 50000)
- * @param deziWatt
- * @return deziVolt
+ * centiVolt = sqrt( (deciWatt/10) x 50Ohm) x 100 
+ * centiVolt = sqrt(deciWatt x 50000)
+ * @param deciWatt
+ * @return deciVolt
  */
 int16_t UTILI_deciWatt_to_centiVolt(int16_t deciWatt)
 {
@@ -147,11 +147,11 @@ int16_t UTILI_deciWatt_to_centiVolt(int16_t deciWatt)
 }
 
 /**
- * Calculate the power fron the voltage on 50ohms
+ * Calculate the power from the voltage on 50ohms
  * P = U² / 50 ohm
- * deziWatt = ((centiVolt/100) x (centiVolt/100) / 50ohm) * 10
- * deziWatt = ((centiVolt x centiVolt) / (10000 x 50)) * 10
- * deziWatt = (centiVolt x centiVolt) / 50000
+ * deciWatt = ((centiVolt/100) x (centiVolt/100) / 50ohm) * 10
+ * deciWatt = ((centiVolt x centiVolt) / (10000 x 50)) * 10
+ * deciWatt = (centiVolt x centiVolt) / 50000
  * Round +25000/50000 = +0,5
  * @param deciVolt
  * @return 

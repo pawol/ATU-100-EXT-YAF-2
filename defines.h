@@ -195,11 +195,10 @@ global_t extern global;
 #include "menu.h"
 #include "adc.h"  
 #include "tune.h"  
-  
 
 const char str_startup_screen_line1[] = "ATU-100";
 const char str_startup_screen_line2[] = "EXT-YAF-2";
-const char str_startup_screen_line3[] = "V1.04";
+const char str_startup_screen_line3[] = "V1.05";
 const char str_about1_line1[] = "Current";
 const char str_about1_line2[] = "firmware";
 const char str_about1_line3[] = "by";
@@ -211,14 +210,13 @@ const char str_about2_line4[] = "DG4SN";
 const char str_about3_line1[] = "Hardware";
 const char str_about3_line2[] = "designed";
 const char str_about3_line3[] = "by";
-const char str_about3_line4[] = "N7DCC";
+const char str_about3_line4[] = "N7DDC";
 const char str_SWR[] = "SWR";
 const char str_PWR[] = "PWR";
 const char str_L_[] = "L=";
 const char str_C_[] = "C=";
 const char str_C_L[] = ">C-L";
 const char str_L_C[] = ">L-C";
-const char str__Tune_[] = " Tuning ";
 const char str_Esc[] = "Esc";
 const char str_Off[] =  "Off";
 const char str_On[] =  " On";
@@ -226,32 +224,33 @@ const char str_Ok[] = "OK";
 const char str_AUTO[]  = "AUTO";
 const char str_Power[] = "Power";
 const char str_Point[] = "Point";
-const char str_Bypass[] = " Bypass ";
 const char str_Delay[] = "Delay";
 const char str_Sleep[] = "Sleep";
 const char str_sleeping[] ="";
 const char str_Auto[] = "Auto";
-const char str_Start[] = "Start"; //Start
-const char str_Stop[] = "Stop"; //Stop
+const char str_Start[] = "Start";
+const char str_Stop[] = "Stop";
 const char str_Save[] = "Save";
+const char str_Resetting[]          = "Resetting";
+const char str_Bypass[]              = " Bypass ";
+const char str__Tune_[]              = " Tuning ";
 
-const char str_MENU_Reset[]         =  "Reset all ";
-const char str_MENU_Bypass[]        =  "Bypass    ";
-const char str_MENU_Save[]          =  "Save Tune ";
-const char str_MENU_Load[]          =  "Load Tune ";
-const char str_MENU_TunePar[]       =  "Tuning    ";
-const char str_MENU_Sleep[]         =  "Sleep     ";
-const char str_MENU_RelTest[]       =  "Test      ";
-const char str_MENU_Cal[]           =  "Calibrate ";
-const char str_MENU_Setup[]         =  "Setup     ";
-const char str_MENU_About[]         =  "About     ";
-
-const char str_SpaceLine[] = "          ";
-const char str_WaitForHF[] = "RF needed ";
-const char str_Running[]   = " Running  "; 
-const char str_Break[]     = "  Break   ";
-const char str_PWR_low[]   = " Low PWR  ";
-const char str_Ready[]     = "  Ready   ";
+const char str_MENU_Reset[]         = "Reset all ";
+const char str_MENU_Bypass[]        = "Bypass    ";
+const char str_MENU_Save[]          = "Save Tune ";
+const char str_MENU_Load[]          = "Load Tune ";
+const char str_MENU_TunePar[]       = "Tuning    ";
+const char str_MENU_Sleep[]         = "Sleep     ";
+const char str_MENU_RelTest[]       = "Test      ";
+const char str_MENU_Cal[]           = "Calibrate ";
+const char str_MENU_Setup[]         = "Setup     ";
+const char str_MENU_About[]         = "About     ";
+const char str_SpaceLine[]          = "          ";
+const char str_WaitForHF[]          = "RF needed ";
+const char str_Running[]            = " Running  "; 
+const char str_Break[]              = "  Break   ";
+const char str_PWR_low[]            = " Low PWR  ";
+const char str_Ready[]              = "  Ready   ";
 
  const char* str_TUNE_State[6] ={
  str_SpaceLine,

@@ -8,8 +8,8 @@ extern "C"
 {
 #endif
 
-__eeprom int16_t ee_tune_stop_swr = 100; //SWR 1.00
-__eeprom int16_t ee_tune_auto_swr = 180; //SWR 1.80
+__eeprom int16_t ee_tune_stop_swr = 100; //SWR tuning target is 1.00
+__eeprom int16_t ee_tune_auto_swr = 200; //SWR trigger level is 2.00
 __eeprom int16_t ee_sleep_delay_sec = 60; // sleep 60s
 __eeprom int16_t ee_cal_point_0 = 50;  //5W
 __eeprom int16_t ee_cal_point_1 = 750; //75W
