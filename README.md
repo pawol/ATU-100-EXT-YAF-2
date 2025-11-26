@@ -1,7 +1,7 @@
 # Antenna tuner - ATU-100 EXT-YAF-2 Yet Another Firmware, debugged and improved by SP6PW
 ![ATU-100_EXT_YAF](images/ATU-100_EXT_YAF.jpg)
 
-## The original projects by N7DDC and DG4SN
+## The original projects by N7DDC and DG4SN but debugged and improved by me (SP6PW)
 https://github.com/Dfinitski/N7DDC-ATU-100-mini-and-extended-boards and https://github.com/DG4SN/ATU-100-EXT-YAF .
 Many thanks for them :)
 
