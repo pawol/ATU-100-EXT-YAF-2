@@ -29,7 +29,7 @@ Before you start please make a backup of the original firmware and be sure that 
 + Bypass ______*Bypass the current tuning settings*
 + Load Tune __ *Load tune setting from memory slots*
 + Save Tune __ *Save the current tuning settings in 10 memory slots*
-+ Reset ______ *Reset all settings to defaults*
++ Reset all______ *Reset all settings to defaults*
 + Setup
      - Tuning _____ *Set tune parameters (Auto tune on/off), SWR start and stop tresholds*
      * Sleep ______ *Set sleep mode and time*
@@ -48,13 +48,14 @@ For programming a PICkit3 or XGecu T48 programmer is used.
 When the ATU-100 is switched off, connect it in the shown way.
 After that switch on the ATU-100
 ![PICkit](images/PICkit.jpg)
-You do not need flash eeprom because you can reinit every setting to default value by menu "Reset all"
+You do not need flash eeprom (but you can) because you can reinit every setting to default value by menu "Reset all"
 
 ## Programming Tool
 If you only like to flash the firmware you can use the Microchip Integrated Programming Environment
 **MPLAB X IDE**.
 The needed hex-file you find as the latest release
 ![MPLAB_X_IPE](images/MPLAB_X_IPE.png)
+or dedicated XGecu T48 programmer utility.
 
 ## Development IDE
 For development the Microchip **MPLAB X IDE v6.25** was used.
